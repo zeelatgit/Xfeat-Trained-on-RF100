@@ -6,8 +6,8 @@ import cv2
 import matplotlib.pyplot as plt
 
 from modules.xfeat import XFeat
-from modules.dataset.augmentation import genrateRandomHomography
-from modules.training.losses import dual_softmax_loss, alike_distill_loss
+from modules.dataset.augmentation import generateRandomHomography
+from modules.training.losses import dual_softmax_loss, coordinate_classification_loss, alike_distill_loss, keypoint_loss
 
 #xfeat = XFeat()
 
@@ -128,8 +128,21 @@ print(f'Number of features matched: {num_features_matched}')
 features1 = torch.tensor(mkpts_0, dtype=torch.float32)
 features2 = torch.tensor(mkpts_1, dtype=torch.float32)
 
-loss, conf = dual_softmax_loss(features1, features2)
-print(f'Loss: {loss.item()}')
+loss_ds, conf = dual_softmax_loss(features1, features2)
+loss_coords, acc_coords = coordinate_classification_loss(features1, features2, conf)
+loss_kp_pos1, acc_pos1 = alike_distill_loss(features1, im1)
+loss_kp_pos2, acc_pos2 = alike_distill_loss(features2, im2)
+loss_kp_pos = (loss_kp_pos1 + loss_kp_pos2) * 2.0
+acc_pos = (acc_pos1 + acc_pos2) / 2
+loss_kp = keypoint_loss(features1, conf) + keypoint_loss(features2, conf)
+
+# Print the additional metrics
+print(f'Loss: {loss_ds.item()}')
+print(f'Coordinate Classification Loss: {loss_coords.item()}')
+print(f'Keypoint Position Loss: {loss_kp_pos.item()}')
+print(f'Keypoint Loss: {loss_kp.item()}')
+print(f'Accuracy (Coarse): {acc_coords}')
+print(f'Accuracy (Keypoint Position): {acc_pos}')
 
 canvas = warp_corners_and_draw_matches(mkpts_0, mkpts_1, im1, im2)
 plt.figure(figsize=(12,12))

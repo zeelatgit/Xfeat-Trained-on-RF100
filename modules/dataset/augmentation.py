@@ -3,7 +3,7 @@
     https://www.verlab.dcc.ufmg.br/descriptors/xfeat_cvpr24/
 
     This script implements color + geometric transformations using Kornia.
-    Given a dataset of random real unlabeled images, we apply photometric transformations, 
+    Given a dataset of random real unlabeled images, we apply photometric transformations,
     homography warps and also TPS warps. It also handles black borders by
     pasting a random background image.
 """
@@ -42,7 +42,7 @@ def generateRandomTPS(shape, grid = (8, 6), GLOBAL_MULTIPLIER = 0.3, prob = 0.5)
     offsets = torch.rand(grid[0]+1, grid[1]+1, 2) - 0.5
     offsets *= torch.tensor([ sh/2, sw/2 ]).view(1, 1, 2)  * min(0.97, 2.0 * GLOBAL_MULTIPLIER)
     dst = src + offsets if np.random.uniform() < prob else src
-    
+
     src, dst = src.view(1, -1, 2), dst.view(1, -1, 2)
     src = (src / torch.tensor([h,w]).view(1,1,2) ) * 2 - 1.
     dst = (dst / torch.tensor([h,w]).view(1,1,2) ) * 2 - 1.
@@ -59,8 +59,8 @@ def generateRandomHomography(shape, GLOBAL_MULTIPLIER = 0.3):
     scale_x, scale_y = np.random.uniform(0.35, 1.2, 2)
 
     #Generate random translation shift
-    tx , ty = -shape[1]/2.0 , -shape[0]/2.0 
-    txn, tyn = np.random.normal(0, 120.0*GLOBAL_MULTIPLIER, 2) 
+    tx , ty = -shape[1]/2.0 , -shape[0]/2.0
+    txn, tyn = np.random.normal(0, 120.0*GLOBAL_MULTIPLIER, 2)
 
     c, s = np.cos(theta), np.sin(theta)
 
@@ -107,17 +107,17 @@ class AugmentationPipe(nn.Module):
 
         self.dims = warp_resolution
         self.batch_size = batch_size
-        self.out_resolution = out_resolution 
+        self.out_resolution = out_resolution
         self.sides_crop = sides_crop
         self.max_num_imgs = max_num_imgs
         self.num_test_imgs = num_test_imgs
         self.dims_t = torch.tensor([int(self.dims[0]*(1. - self.sides_crop)) - int(self.dims[0]*self.sides_crop) -1,
                                     int(self.dims[1]*(1. - self.sides_crop)) - int(self.dims[1]*self.sides_crop) -1]).float().to(device).view(1,1,2)
         self.dims_s = torch.tensor([ self.dims_t[0,0,0] / out_resolution[0],
-                                     self.dims_t[0,0,1] / out_resolution[1]]).float().to(device).view(1,1,2) 
+                                     self.dims_t[0,0,1] / out_resolution[1]]).float().to(device).view(1,1,2)
 
         self.all_imgs = glob.glob(img_dir + '/*.jpg') + glob.glob(img_dir + '/*.png')
-        
+
         self.photometric = photometric
         self.geometric = geometric
         self.cnt = 1
@@ -133,7 +133,7 @@ class AugmentationPipe(nn.Module):
             list_augmentation = []
 
         self.aug_list = kornia.augmentation.ImageSequential(*list_augmentation)
-        
+
         if len(self.all_imgs) < 10:
             raise RuntimeError('Couldnt find enough images to train. Please check the path: ', img_dir)
 
@@ -167,16 +167,16 @@ class AugmentationPipe(nn.Module):
                 train.append(np.copy(im))
 
             self.train = train
-            
+
             self.test = [
-                        cv2.resize(cv2.imread(p), self.dims)                 
+                        cv2.resize(cv2.imread(p), self.dims)
                         for p in tqdm.tqdm(self.all_imgs[-self.num_test_imgs:],
                                            desc='loading test')
-                        ] 
+                        ]
 
     def norm_pts_grid(self, x):
         if len(x.size()) == 2:
-            return (x.view(1,-1,2) * self.dims_s / self.dims_t) * 2. - 1 
+            return (x.view(1,-1,2) * self.dims_s / self.dims_t) * 2. - 1
         return (x * self.dims_s / self.dims_t) * 2. - 1
 
     def denorm_pts_grid(self, x):
@@ -199,7 +199,7 @@ class AugmentationPipe(nn.Module):
       pts = pts*scale + offset
       pts = torch.vstack( [pts.t(), torch.ones(1, pts.shape[0], device = pts.device)])
       warped = torch.matmul(H, pts)
-      warped = warped / warped[2,...] 
+      warped = warped / warped[2,...]
       warped = warped.t()[:, :2]
       return (warped - offset) / scale
 
@@ -217,7 +217,7 @@ class AugmentationPipe(nn.Module):
             return:
                 'output'    ->   torch.Tensor(B, C, H, W): rgb images
                 Tuple:
-                    'H'       ->   torch.Tensor(3,3): homography matrix 
+                    'H'       ->   torch.Tensor(3,3): homography matrix
                     'mask'  ->     torch.Tensor(B, H, W): mask of valid pixels after warp
                     (deformation only)
                     src, weights, A are parameters from a TPS warp (all torch.Tensors)
@@ -234,12 +234,12 @@ class AugmentationPipe(nn.Module):
             x = (x/255.).to(self.device)
             b, c, h, w = x.shape
             shape = (h, w)
-              
+
             ######## Geometric Transformations
 
             H = torch.tensor(np.array([generateRandomHomography(shape, difficulty) for b in range(self.batch_size)]),
                                dtype = torch.float32).to(self.device)
-            
+
             output = kornia.geometry.transform.warp_perspective(x, H,
                             dsize = shape, padding_mode = 'zeros')
 
@@ -278,14 +278,14 @@ class AugmentationPipe(nn.Module):
             mask = mask[:, 0, :, :]
 
             ######## Photometric Transformations
-            output = self.aug_list(output)
+            output_photometric = self.aug_list(output)
 
-            b, c, h, w = output.shape
+            b, c, h, w = output_photometric.shape
             #Correlated Gaussian Noise
             if np.random.uniform() > 0.5 and self.photometric:
-                noise = F.interpolate(torch.randn_like(output)*(10/255), (h//2, w//2))
+                noise = F.interpolate(torch.randn_like(output_photometric)*(10/255), (h//2, w//2))
                 noise = F.interpolate(noise, (h, w), mode = 'bicubic')
-                output = torch.clip( output + noise, 0., 1.)
+                output = torch.clip( output_photometric + noise, 0., 1.)
 
             #Random shadows
             if np.random.uniform() > 0.6 and self.photometric:
@@ -294,18 +294,18 @@ class AugmentationPipe(nn.Module):
                 noise = F.interpolate(noise, (h, w), mode = 'bicubic')
                 noise = noise.expand(-1, 3, -1, -1)
                 output *= noise
-                output = torch.clip( output, 0., 1.)
+                output = torch.clip( output_photometric, 0., 1.)
 
             self.cnt+=1
 
         if TPS:
-            return output, (H, src, weights, A, mask)
+            return x, output, output_photometric, (H, src, weights, A, mask)
         else:
-            return output, (H, mask)
+            return x, output, output_photometric, (H, mask)
 
     def get_correspondences(self, kps_target, T):
         H, H2, src, W, A = T
-        undeformed  = self.denorm_pts_grid(   
+        undeformed  = self.denorm_pts_grid(
                                         warp_points_tps(self.norm_pts_grid(kps_target),
                                         src, W, A) ).view(-1,2)
 

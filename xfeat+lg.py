@@ -7,16 +7,19 @@ import tqdm
 import cv2
 import matplotlib.pyplot as plt
 from kornia.feature.lightglue import LightGlue
+from modules.xfeat import XFeat
 
 
-#!pip install kornia kornia-rs --no-deps
-#REQUIRED for Lightglue matching
+# Load the checkpoint
+checkpoint_path = 'ckpts/xfeat_synthetic_29500.pth'  # Replace with your checkpoint file path
+checkpoint = torch.load(checkpoint_path, map_location=torch.device('cuda' if torch.cuda.is_available() else 'cpu'))
 
-xfeat = torch.hub.load('verlab/accelerated_features', 'XFeat', pretrained = True, top_k = 4096)
+# Initialize XFeat with the loaded weights
+xfeat = XFeat(weights=checkpoint['model_state_dict'])
 
 #Load some example images
-im1 = np.copy(imio.v2.imread('coco_20k/frame03342_rrgb_jpg.rf.f61dc581524329c19a2d11cc38384ceb.jpg')[..., ::-1])
-im2 = np.copy(imio.v2.imread('coco_20k/frame03368_lrgb_jpg.rf.946c78c2d9d95a2298bb902b311db8ef.jpg')[..., ::-1])
+im1 = np.copy(imio.v2.imread('ImgPairs/u000101_jpg.rf.edb8b83097560dbf47c5116b0bd27e7f.jpg')[..., ::-1])
+im2 = np.copy(imio.v2.imread('ImgPairs/u000103_jpg.rf.fa94df945189d816ac49bb818475029a.jpg')[..., ::-1])
 
 import cv2
 import numpy as np

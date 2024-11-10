@@ -16,10 +16,21 @@ def make_batch(augmentor, difficulty = 0.3, train = True):
             img = torch.tensor(img_list[rdidx], dtype=torch.float32).permute(2,0,1).to(augmentor.device).unsqueeze(0)
             batch_images.append(img)
 
+        print(f"batch_images before concatenation: {batch_images}")
+
         batch_images = torch.cat(batch_images)
 
-        p1, H1 = augmentor(batch_images, difficulty)
-        p2, H2 = augmentor(batch_images, difficulty, TPS = True, prob_deformation = 0.7)
+        print(f"batch_images after concatenation: {batch_images.shape}")
+
+        try:
+            p1, H1 = augmentor(batch_images, difficulty)
+            p2, H2 = augmentor(batch_images, difficulty, TPS=True, prob_deformation=0.7)
+        except ValueError as e:
+            print(f"ValueError: {e}")
+            raise
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            raise
 
     return p1, p2, H1, H2
 

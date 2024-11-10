@@ -31,8 +31,8 @@ def generateControlledRandomHomography(shape, max_displacement=30):
     return H
 
 # Example usage
-im1 = cv2.imread('LandData/prtn01.jpg')
-im2 = cv2.imread('LandData/prtn02.jpg')
+im1 = cv2.imread('ImgPairs/u000101_jpg.rf.edb8b83097560dbf47c5116b0bd27e7f.jpg')
+im2 = cv2.imread('ImgPairs/u000103_jpg.rf.fa94df945189d816ac49bb818475029a.jpg')
 #H1 = generateControlledRandomHomography(im1.shape[:2], max_displacement=2000)
 #im2 = cv2.warpPerspective(im1, H1, (im1.shape[1], im1.shape[0]))
 
